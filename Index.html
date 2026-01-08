@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IQA Assistant - Milestone Educational Consultancy</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 450px;
+            width: 100%;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+        }
+        .logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 40px;
+        }
+        h1 {
+            text-align: center;
+            color: #1e293b;
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #64748b;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        .tab {
+            flex: 1;
+            padding: 12px;
+            background: #f1f5f9;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #64748b;
+            transition: all 0.2s;
+        }
+        .tab.active {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            color: white;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 15px;
+            transition: border 0.2s;
+        }
+        input:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+        .btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .message {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            text-align: center;
+        }
+        .message.success {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #86efac;
+        }
+        .message.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+        .badge {
+            display: inline-block;
+            padding: 6px 12px;
+            background: #dbeafe;
+            color: #1e40af;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin: 5px auto;
+            display: block;
+            text-align: center;
+            width: fit-content;
+        }
+        .hidden { display: none; }
+        .dashboard {
+            text-align: center;
+        }
+        .welcome {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+        .feature {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 15px 0;
+            border: 1px solid #e2e8f0;
+        }
+        .feature h3 {
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+        .feature p {
+            color: #64748b;
+            font-size: 14px;
+        }
+        .logout {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: #f1f5f9;
+            color: #475569;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div id="authView">
+            <div class="logo">🎓</div>
+            <h1>IQA Assistant Pro</h1>
+            <p class="subtitle">Milestone Educational Consultancy</p>
+            <div class="badge">✨ Beta Access - Free Forever</div>
+            
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('signin')">Sign In</button>
+                <button class="tab" onclick="switchTab('signup')">Sign Up</button>
+            </div>
+
+            <form id="authForm" onsubmit="handleAuth(event)">
+                <div id="centreField" class="form-group hidden">
+                    <input type="text" id="centreName" placeholder="Centre Name" />
+                </div>
+                <div class="form-group">
+                    <input type="email" id="email" placeholder="Email Address" required />
+                </div>
+                <div class="form-group">
+                    <input type="password" id="password" placeholder="Password (min 6 characters)" required />
+                </div>
+                <button type="submit" class="btn" id="authBtn">Sign In</button>
+            </form>
+
+            <div id="message"></div>
+        </div>
+
+        <div id="dashboardView" class="dashboard hidden">
+            <div class="welcome">
+                <h2>Welcome! 🎉</h2>
+                <p id="userInfo"></p>
+            </div>
+
+            <div class="feature">
+                <h3>🎯 AI Sampling Plans</h3>
+                <p>Generate compliant IQA sampling plans in minutes</p>
+                <span style="color: #f59e0b; font-size: 12px;">Coming Soon</span>
+            </div>
+
+            <div class="feature">
+                <h3>✅ Compliance Checker</h3>
+                <p>Prepare for EQA visits with AI analysis</p>
+                <span style="color: #f59e0b; font-size: 12px;">Coming Soon</span>
+            </div>
+
+            <div class="feature">
+                <h3>📝 IQA Recording</h3>
+                <p>Track outcomes with AI-generated feedback</p>
+                <span style="color: #f59e0b; font-size: 12px;">Coming Soon</span>
+            </div>
+
+            <button class="logout" onclick="logout()">Sign Out</button>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://ktnvjsslyksrdyewosqs.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt0bnZqc3NseWtzcmR5ZXdvc3FzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzUwMzY2OTgsImV4cCI6MjA1MDYxMjY5OH0.sb_publishable_2Aoxu2nyXCR8U_VKamqvew_nEkliQna';
+
+        let currentMode = 'signin';
+
+        // Check if user is logged in
+        window.onload = function() {
+            const session = localStorage.getItem('iqa_session');
+            if (session) {
+                const user = JSON.parse(session);
+                showDashboard(user);
+            }
+        };
+
+        function switchTab(mode) {
+            currentMode = mode;
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            const centreField = document.getElementById('centreField');
+            const authBtn = document.getElementById('authBtn');
+            
+            if (mode === 'signup') {
+                centreField.classList.remove('hidden');
+                authBtn.textContent = 'Create Account';
+            } else {
+                centreField.classList.add('hidden');
+                authBtn.textContent = 'Sign In';
+            }
+            
+            document.getElementById('message').innerHTML = '';
+        }
+
+        async function handleAuth(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const centreName = document.getElementById('centreName').value;
+            const messageDiv = document.getElementById('message');
+            const btn = document.getElementById('authBtn');
+            
+            btn.disabled = true;
+            btn.textContent = 'Processing...';
+            messageDiv.innerHTML = '';
+
+            try {
+                if (currentMode === 'signup') {
+                    // Sign Up
+                    const response = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+                        method: 'POST',
+                        headers: {
+                            'apikey': SUPABASE_KEY,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            email: email,
+                            password: password,
+                            data: { centre_name: centreName || 'My Centre' }
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.error) {
+                        messageDiv.innerHTML = `<div class="message error">${data.error.message}</div>`;
+                    } else {
+                        messageDiv.innerHTML = `<div class="message success">✅ Success! Check your email (${email}) to verify your account, then sign in!</div>`;
+                        setTimeout(() => switchTab('signin'), 3000);
+                    }
+                } else {
+                    // Sign In
+                    const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+                        method: 'POST',
+                        headers: {
+                            'apikey': SUPABASE_KEY,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            email: email,
+                            password: password
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.error) {
+                        messageDiv.innerHTML = `<div class="message error">${data.error.message}</div>`;
+                    } else {
+                        const user = {
+                            id: data.user.id,
+                            email: data.user.email,
+                            centre_name: data.user.user_metadata?.centre_name || 'My Centre',
+                            token: data.access_token
+                        };
+                        
+                        localStorage.setItem('iqa_session', JSON.stringify(user));
+                        showDashboard(user);
+                    }
+                }
+            } catch (error) {
+                messageDiv.innerHTML = `<div class="message error">Error: ${error.message}</div>`;
+            }
+
+            btn.disabled = false;
+            btn.textContent = currentMode === 'signup' ? 'Create Account' : 'Sign In';
+        }
+
+        function showDashboard(user) {
+            document.getElementById('authView').classList.add('hidden');
+            document.getElementById('dashboardView').classList.remove('hidden');
+            document.getElementById('userInfo').textContent = `${user.centre_name} | ${user.email}`;
+        }
+
+        function logout() {
+            localStorage.removeItem('iqa_session');
+            location.reload();
+        }
+    </script>
+</body>
+  </html>
