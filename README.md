@@ -85,5 +85,6 @@ To keep Supabase subscription status synced even if users close the browser afte
 - Do not commit `.env` or Supabase secrets.
 - For free-tier deployment, Vercel and Netlify are both good choices for a static Vite app.
 - If you want subscription behavior later, the build output is already optimized for static hosting.
+- “trigger deploy”
+
   
-“trigger deploy”
