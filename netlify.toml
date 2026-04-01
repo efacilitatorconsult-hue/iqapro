@@ -1,11 +1,21 @@
 [build]
   command = "npm run build"
   publish = "dist"
+  functions = "netlify/functions"
 
 [build.environment]
   # Set these values in Netlify UI instead of committing secrets.
   VITE_SUPABASE_URL = ""
   VITE_SUPABASE_ANON_KEY = ""
+  VITE_STRIPE_PRICE_ID = ""
+  STRIPE_SECRET_KEY = ""
+  SUPABASE_URL = ""
+  SUPABASE_SERVICE_ROLE_KEY = ""
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
 
 [[redirects]]
   from = "/*"
