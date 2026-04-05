@@ -89,4 +89,5 @@ To keep Supabase subscription status synced even if users close the browser afte
 - trigger deploy 3
 
 
-  
+
+
