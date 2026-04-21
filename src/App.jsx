@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import Pricing from './Pricing';
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -15,8 +16,8 @@ const App = () => {
   const [centreName, setCentreName] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-  const priceId = import.meta.env.VITE_STRIPE_PRICE_ID;
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [showPricing, setShowPricing] = useState(false);
 
   const isErrorMessage = (text) => {
     const value = String(text || '').toLowerCase();
@@ -47,9 +48,9 @@ const App = () => {
     window.history.replaceState(null, '', url.pathname + url.search);
   };
 
-  const startCheckout = async () => {
+  const startCheckout = async (priceId) => {
     if (!priceId) {
-      setMessage('Stripe price ID is not configured. Set VITE_STRIPE_PRICE_ID.');
+      setMessage('No plan selected. Please choose a plan.');
       return;
     }
     setCheckoutLoading(true);
@@ -73,14 +74,8 @@ const App = () => {
   };
 
   const handleCheckoutSuccess = async (sessionId) => {
-    if (!sessionId) {
-      removeQueryString();
-      return;
-    }
-    if (!user) {
-      removeQueryString();
-      return;
-    }
+    if (!sessionId) { removeQueryString(); return; }
+    if (!user) { removeQueryString(); return; }
 
     setCheckoutLoading(true);
     setMessage('Confirming subscription...');
@@ -88,15 +83,14 @@ const App = () => {
     try {
       const response = await fetch(`/api/checkout-success?sessionId=${encodeURIComponent(sessionId)}`);
       const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || 'Unable to confirm subscription.');
-      }
+      if (!response.ok) throw new Error(data.error || 'Unable to confirm subscription.');
       setUser((prevUser) => ({
         ...prevUser,
         subscription_expires_at: data.subscription_expires_at,
         subscription_valid: true
       }));
-      setMessage('✅ Subscription renewed successfully!');
+      setMessage('✅ Subscription activated successfully!');
+      setShowPricing(false);
     } catch (error) {
       setMessage(`Subscription update failed: ${error.message}`);
     } finally {
@@ -122,43 +116,32 @@ const App = () => {
     const restoreSession = async () => {
       const { data } = await supabase.auth.getSession();
       const session = data?.session;
-      if (session?.user) {
-        setUser(mapUser(session.user));
-      }
+      if (session?.user) setUser(mapUser(session.user));
 
       const urlParams = new URLSearchParams(window.location.search);
       const sessionId = urlParams.get('session_id');
-      if (sessionId && session?.user) {
-        handleCheckoutSuccess(sessionId);
-      }
+      if (sessionId && session?.user) handleCheckoutSuccess(sessionId);
 
       const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
-        if (session?.user) {
-          setUser(mapUser(session.user));
-        } else {
-          setUser(null);
-        }
+        if (session?.user) setUser(mapUser(session.user));
+        else setUser(null);
       });
       subscription = listener?.subscription;
     };
 
     restoreSession();
-
     return () => subscription?.unsubscribe();
   }, []);
 
   const signUp = async () => {
     if (!email || !password || !confirmPassword || !centreName) {
-      setMessage('Please fill all fields');
-      return;
+      setMessage('Please fill all fields'); return;
     }
     if (password !== confirmPassword) {
-      setMessage('Passwords do not match');
-      return;
+      setMessage('Passwords do not match'); return;
     }
     if (password.length < 6) {
-      setMessage('Password must be at least 6 characters');
-      return;
+      setMessage('Password must be at least 6 characters'); return;
     }
 
     setLoading(true);
@@ -174,22 +157,14 @@ const App = () => {
       setMessage(`Error: ${error.message}`);
     } else {
       setMessage('✅ Success! Check your email to verify your account, then sign in.');
-      setEmail('');
-      setPassword('');
-      setConfirmPassword('');
-      setCentreName('');
+      setEmail(''); setPassword(''); setConfirmPassword(''); setCentreName('');
       setTimeout(() => setAuthMode('signin'), 4000);
     }
-
     setLoading(false);
   };
 
   const signIn = async () => {
-    if (!email || !password) {
-      setMessage('Please fill all fields');
-      return;
-    }
-
+    if (!email || !password) { setMessage('Please fill all fields'); return; }
     setLoading(true);
     setMessage('');
 
@@ -197,16 +172,12 @@ const App = () => {
     if (error) {
       setMessage(`Error: ${error.message}`);
     } else {
-      const userMeta = data?.user;
-      const mapped = mapUser(userMeta);
+      const mapped = mapUser(data?.user);
       setUser(mapped);
       if (!mapped.subscription_valid) {
         setMessage('Your subscription has expired. Please renew to continue.');
-      } else {
-        setMessage('');
       }
     }
-
     setLoading(false);
   };
 
@@ -214,13 +185,12 @@ const App = () => {
     await supabase.auth.signOut();
     setUser(null);
     setAuthMode('signin');
-    setEmail('');
-    setPassword('');
-    setConfirmPassword('');
-    setCentreName('');
+    setEmail(''); setPassword(''); setConfirmPassword(''); setCentreName('');
     setMessage('');
+    setShowPricing(false);
   };
 
+  // ─── Not logged in ───────────────────────────────────────────────
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-950 flex items-center justify-center p-4">
@@ -232,7 +202,7 @@ const App = () => {
               </svg>
             </div>
             <h1 className="text-3xl font-bold text-white mb-2">iqaPro</h1>
-            <p className="text-slate-400">AI-powered IQA quality assurance by iqapro</p>
+            <p className="text-slate-400">AI-powered IQA quality assurance</p>
             <div className="mt-3 inline-block bg-green-500 bg-opacity-20 border border-green-500 rounded-full px-4 py-1">
               <span className="text-green-300 text-sm font-semibold">✓ Connected to Database</span>
             </div>
@@ -240,19 +210,12 @@ const App = () => {
 
           <div className="flex gap-2 mb-6">
             <button
-              onClick={() => {
-                setAuthMode('signin');
-                setMessage('');
-                setConfirmPassword('');
-              }}
+              onClick={() => { setAuthMode('signin'); setMessage(''); setConfirmPassword(''); }}
               className={`flex-1 py-2 rounded-2xl font-semibold transition ${authMode === 'signin' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
               Sign In
             </button>
             <button
-              onClick={() => {
-                setAuthMode('signup');
-                setMessage('');
-              }}
+              onClick={() => { setAuthMode('signup'); setMessage(''); }}
               className={`flex-1 py-2 rounded-2xl font-semibold transition ${authMode === 'signup' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
               Sign Up
             </button>
@@ -260,47 +223,25 @@ const App = () => {
 
           <div className="space-y-4">
             {authMode === 'signup' && (
-              <input
-                type="text"
-                placeholder="Centre Name (e.g., ABC Training College)"
-                value={centreName}
-                onChange={(e) => setCentreName(e.target.value)}
-                className="w-full p-3 bg-slate-700 border border-slate-600 rounded-2xl text-white placeholder-slate-400"
-              />
+              <input type="text" placeholder="Centre Name (e.g., ABC Training College)"
+                value={centreName} onChange={(e) => setCentreName(e.target.value)}
+                className="w-full p-3 bg-slate-700 border border-slate-600 rounded-2xl text-white placeholder-slate-400" />
             )}
-
-            <input
-              type="email"
-              placeholder="Email Address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-3 bg-slate-700 border border-slate-600 rounded-2xl text-white placeholder-slate-400"
-            />
-            <input
-              type="password"
-              placeholder="Password (min 6 characters)"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-3 bg-slate-700 border border-slate-600 rounded-2xl text-white placeholder-slate-400"
-            />
+            <input type="email" placeholder="Email Address"
+              value={email} onChange={(e) => setEmail(e.target.value)}
+              className="w-full p-3 bg-slate-700 border border-slate-600 rounded-2xl text-white placeholder-slate-400" />
+            <input type="password" placeholder="Password (min 6 characters)"
+              value={password} onChange={(e) => setPassword(e.target.value)}
+              className="w-full p-3 bg-slate-700 border border-slate-600 rounded-2xl text-white placeholder-slate-400" />
             {authMode === 'signup' && (
-              <input
-                type="password"
-                placeholder="Confirm Password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full p-3 bg-slate-700 border border-slate-600 rounded-2xl text-white placeholder-slate-400"
-              />
+              <input type="password" placeholder="Confirm Password"
+                value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full p-3 bg-slate-700 border border-slate-600 rounded-2xl text-white placeholder-slate-400" />
             )}
-
-            <button
-              onClick={authMode === 'signin' ? signIn : signUp}
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-2xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition disabled:opacity-50"
-            >
+            <button onClick={authMode === 'signin' ? signIn : signUp} disabled={loading}
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-2xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition disabled:opacity-50">
               {loading ? '⏳ Processing...' : authMode === 'signin' ? 'Sign In' : 'Create Account'}
             </button>
-
             {message && (
               <div className={`p-3 rounded-2xl text-sm ${isErrorMessage(message) ? 'bg-red-500 bg-opacity-20 text-red-300 border border-red-500' : 'bg-green-500 bg-opacity-20 text-green-300 border border-green-500'}`}>
                 {message}
@@ -309,7 +250,7 @@ const App = () => {
           </div>
 
           <div className="mt-6 pt-6 border-t border-slate-700 text-slate-400 text-xs text-center">
-            <p className="mb-2">Free beta access for early testers. You can always switch to a real backend later.</p>
+            <p className="mb-2">30-day free trial. No credit card required to sign up.</p>
             <p>Saves IQAs 10+ hours/month on sampling plans and compliance.</p>
           </div>
         </div>
@@ -317,36 +258,39 @@ const App = () => {
     );
   }
 
+  // ─── Subscription expired ────────────────────────────────────────
   if (user && !user.subscription_valid) {
+    if (showPricing) {
+      return <Pricing user={user} onCheckout={startCheckout} checkoutLoading={checkoutLoading} onBack={() => setShowPricing(false)} />;
+    }
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-slate-900 border border-slate-700 rounded-3xl p-8 shadow-2xl text-center">
           <p className="text-sm uppercase tracking-[0.35em] text-pink-300 mb-4">Subscription expired</p>
           <h1 className="text-3xl font-bold text-white mb-4">Your iqapro access has ended</h1>
-          <p className="text-slate-400 mb-6">Your trial or subscription expired on {user.subscription_expires_at ? new Date(user.subscription_expires_at).toLocaleDateString() : 'unknown'}.</p>
-          <p className="text-slate-300 mb-6">Please renew your subscription to continue using iqapro.</p>
-          <button
-            onClick={startCheckout}
-            disabled={checkoutLoading}
-            className="w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-cyan-500 px-5 py-3 text-white font-semibold hover:from-emerald-600 hover:to-cyan-600 transition disabled:opacity-50"
-          >
-            {checkoutLoading ? 'Redirecting to checkout...' : 'Renew subscription'}
+          <p className="text-slate-400 mb-6">
+            Your trial or subscription expired on {user.subscription_expires_at ? new Date(user.subscription_expires_at).toLocaleDateString() : 'unknown'}.
+          </p>
+          <button onClick={() => setShowPricing(true)}
+            className="w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-cyan-500 px-5 py-3 text-white font-semibold hover:from-emerald-600 hover:to-cyan-600 transition mb-3">
+            View plans & renew
           </button>
-          <button
-            onClick={signOut}
-            className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-5 py-3 text-white font-semibold hover:bg-slate-800 transition"
-          >
+          <button onClick={signOut}
+            className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-5 py-3 text-white font-semibold hover:bg-slate-800 transition">
             Sign out
           </button>
-          {message && (
-            <div className="mt-4 text-sm text-slate-300">{message}</div>
-          )}
-          <div className="mt-6 text-xs text-slate-500">If you want, you can sign in again after updating your subscription.</div>
+          {message && <div className="mt-4 text-sm text-slate-300">{message}</div>}
         </div>
       </div>
     );
   }
 
+  // ─── Pricing page (active user choosing to upgrade/change plan) ──
+  if (showPricing) {
+    return <Pricing user={user} onCheckout={startCheckout} checkoutLoading={checkoutLoading} onBack={() => setShowPricing(false)} />;
+  }
+
+  // ─── Main dashboard ──────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="max-w-6xl mx-auto p-4">
@@ -355,16 +299,28 @@ const App = () => {
             <p className="text-sm uppercase tracking-[0.35em] text-sky-400">iqapro</p>
             <h1 className="text-4xl font-bold text-white">Welcome back, {user.centre_name}</h1>
             <p className="mt-2 text-slate-400">
-            {user.subscription_expires_at ? `Subscription expires in ${formatDaysLeft(new Date(user.subscription_expires_at))}.` : 'Subscription status unavailable.'}
-          </p>
+              {user.subscription_expires_at
+                ? `Subscription expires in ${formatDaysLeft(new Date(user.subscription_expires_at))}.`
+                : 'Subscription status unavailable.'}
+            </p>
           </div>
-          <button
-            onClick={signOut}
-            className="rounded-2xl border border-slate-700 bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800"
-          >
-            Sign Out
-          </button>
+          <div className="flex gap-3">
+            <button onClick={() => setShowPricing(true)}
+              className="rounded-2xl border border-sky-700 bg-sky-900 bg-opacity-40 px-5 py-3 text-sm font-semibold text-sky-300 hover:bg-opacity-70 transition">
+              View Plans
+            </button>
+            <button onClick={signOut}
+              className="rounded-2xl border border-slate-700 bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800 transition">
+              Sign Out
+            </button>
+          </div>
         </header>
+
+        {message && (
+          <div className={`mb-6 p-4 rounded-2xl text-sm ${isErrorMessage(message) ? 'bg-red-500 bg-opacity-20 text-red-300 border border-red-500' : 'bg-green-500 bg-opacity-20 text-green-300 border border-green-500'}`}>
+            {message}
+          </div>
+        )}
 
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-xl">
@@ -384,17 +340,17 @@ const App = () => {
               <span className="rounded-full bg-slate-800 px-4 py-2 text-sm text-slate-300">Active</span>
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-2xl bg-slate-800 p-4 text-sm text-slate-200">
+              <div className="rounded-2xl bg-slate-800 p-4">
                 <p className="text-3xl font-bold text-white">12</p>
-                <p className="mt-2 text-slate-400">Pending reviews</p>
+                <p className="mt-2 text-slate-400 text-sm">Pending reviews</p>
               </div>
-              <div className="rounded-2xl bg-slate-800 p-4 text-sm text-slate-200">
+              <div className="rounded-2xl bg-slate-800 p-4">
                 <p className="text-3xl font-bold text-white">4</p>
-                <p className="mt-2 text-slate-400">New reports</p>
+                <p className="mt-2 text-slate-400 text-sm">New reports</p>
               </div>
-              <div className="rounded-2xl bg-slate-800 p-4 text-sm text-slate-200">
+              <div className="rounded-2xl bg-slate-800 p-4">
                 <p className="text-3xl font-bold text-white">97%</p>
-                <p className="mt-2 text-slate-400">Quality score</p>
+                <p className="mt-2 text-slate-400 text-sm">Quality score</p>
               </div>
             </div>
           </div>
