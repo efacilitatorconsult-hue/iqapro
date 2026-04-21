@@ -1,93 +1,101 @@
-# iqapro App
+# iqapro
 
-A Vite + React scaffold for the iqapro IQA sampling assistant.
+AI-powered IQA sampling assistant built with Vite + React, Supabase Auth, and Stripe billing.
 
-## Setup
+---
 
-1. Open `c:\Users\jimol\Desktop\iqapro`
-2. Copy `.env.example` to `.env` and add your Supabase values.
-3. Run:
-   ```bash
-   npm install
-   npm run dev
-   ```
+## Stack
 
-## Preview
+| Layer | Technology |
+|---|---|
+| Frontend | Vite + React + Tailwind CSS |
+| Auth & Users | Supabase |
+| Payments | Stripe Checkout |
+| Hosting | Vercel |
+| API | Vercel Serverless Functions (`/api`) |
 
-Run:
+---
+
+## Local setup
 
 ```bash
-npm run preview
+cp .env.example .env   # fill in your keys (see below)
+npm install
+npm run dev
 ```
 
-## Deployment
+---
 
-### Vercel
+## Environment variables
 
-1. Connect the `iqapro` folder in the Vercel dashboard.
-2. Set the build command to:
-   ```bash
-   npm run build
-   ```
-3. Set the output directory to:
-   ```text
-   dist
-   ```
-4. Add environment variables in Vercel:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-   - `VITE_STRIPE_PRICE_ID`
-   - `STRIPE_SECRET_KEY`
-   - `SUPABASE_URL`
-   - `SUPABASE_SERVICE_ROLE_KEY`
-   - `STRIPE_WEBHOOK_SECRET`
+Add these in Vercel (Settings → Environment Variables) and locally in `.env`:
 
-The repository already includes `vercel.json` for static build deployment and `/api` billing endpoints.
+| Variable | Scope | Where to find it |
+|---|---|---|
+| `VITE_SUPABASE_URL` | Frontend + Backend | Supabase → Project Settings → API |
+| `VITE_SUPABASE_ANON_KEY` | Frontend | Supabase → Project Settings → API |
+| `VITE_STRIPE_PRICE_ID` | Frontend | Stripe → Products |
+| `STRIPE_SECRET_KEY` | Backend only | Stripe → Developers → API Keys |
+| `SUPABASE_URL` | Backend only | Supabase → Project Settings → API |
+| `SUPABASE_SERVICE_ROLE_KEY` | Backend only | Supabase → Project Settings → API |
+| `STRIPE_WEBHOOK_SECRET` | Backend only | Stripe → Developers → Webhooks |
 
-### Netlify
+> **Never commit `.env`**. `VITE_` variables are bundled into public JS at build time — never put secrets in them.
 
-1. Connect the `iqapro` folder in the Netlify dashboard.
-2. Use the build command:
-   ```bash
-   npm run build
-   ```
-3. Set the publish directory to:
-   ```text
-   dist
-   ```
-4. Add environment variables in Netlify:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-   - `VITE_STRIPE_PRICE_ID`
-   - `STRIPE_SECRET_KEY`
-   - `SUPABASE_URL`
-   - `SUPABASE_SERVICE_ROLE_KEY`
-   - `STRIPE_WEBHOOK_SECRET`
+---
 
-This repo includes `netlify.toml` and a fallback redirect so routing works correctly. The Netlify config also rewrites `/api/*` to the built functions in `netlify/functions`.
+## Vercel deployment
+
+1. Push this repo to GitHub
+2. Import the repo in the [Vercel dashboard](https://vercel.com/new)
+3. Set build command: `npm run build`
+4. Set output directory: `dist`
+5. Add all environment variables from the table above
+6. Deploy
+
+Vercel auto-detects the `api/` folder and deploys each file as a serverless function. The `vercel.json` handles SPA routing fallback.
+
+---
 
 ## Stripe webhook setup
 
-To keep Supabase subscription status synced even if users close the browser after checkout, set up a Stripe webhook for the app.
+The webhook keeps Supabase subscription status in sync when payments are processed.
 
-1. In Stripe Dashboard, create a webhook endpoint for the `checkout.session.completed` event.
-2. Use one of these webhook URLs depending on your deployment target:
-   - Vercel: `https://<your-domain>/api/webhook`
-   - Netlify: `https://<your-domain>/.netlify/functions/webhook`
-3. Add the returned webhook signing secret to your host as `STRIPE_WEBHOOK_SECRET`.
-4. Optional events to add for improved renewal tracking:
+1. In [Stripe Dashboard](https://dashboard.stripe.com) → Developers → Webhooks → **Add endpoint**
+2. Set endpoint URL to:
+   ```
+   https://<your-vercel-domain>/api/webhook
+   ```
+3. Select these events:
+   - `checkout.session.completed`
    - `invoice.payment_succeeded`
+4. Copy the signing secret and add it to Vercel as `STRIPE_WEBHOOK_SECRET`
 
-## Notes
+---
 
-- New sign-ups receive a 30-day trial period stored in Supabase user metadata as `subscription_expires_at`.
-- When a trial or subscription expires, iqapro limits access and shows a renewal prompt.
-- Do not commit `.env` or Supabase secrets.
-- For free-tier deployment, Vercel and Netlify are both good choices for a static Vite app.
-- If you want subscription behavior later, the build output is already optimized for static hosting.
-- “trigger redeploy”
-- trigger deploy 3
+## How subscriptions work
 
+- New sign-ups get a **30-day free trial** stored as `subscription_expires_at` in Supabase user metadata
+- On expiry, the app blocks access and shows a renewal prompt
+- On successful Stripe checkout, `/api/checkout-success` updates the expiry in Supabase immediately
+- The webhook handles renewals and catches cases where the user closes the browser before the success redirect
 
+---
 
+## API endpoints
 
+| Endpoint | Method | Purpose |
+|---|---|---|
+| `/api/create-checkout-session` | `POST` | Creates a Stripe Checkout session |
+| `/api/checkout-success` | `GET` | Confirms payment and updates Supabase |
+| `/api/webhook` | `POST` | Handles Stripe events for renewals |
+
+---
+
+## Scripts
+
+```bash
+npm run dev      # local dev server
+npm run build    # production build → dist/
+npm run preview  # preview production build locally
+```
