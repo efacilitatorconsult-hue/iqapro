@@ -1,15 +1,10 @@
-// src/supabaseClient.js
-import { createClient } from '@supabase/supabase-js'
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import './styles.css';
+import App from './App';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-
-// This 'try/catch' prevents extensions like Adobe/MetaMask from breaking your app load
-let supabase;
-try {
-  supabase = createClient(supabaseUrl, supabaseAnonKey)
-} catch (e) {
-  console.error("Supabase failed to initialize, likely a header/extension conflict:", e)
-}
-
-export { supabase }
+createRoot(document.getElementById('root')).render(
+  <StrictMode>
+    <App />
+  </StrictMode>
+);
