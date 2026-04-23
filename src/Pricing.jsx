@@ -86,7 +86,7 @@ export default function Pricing({ user, onCheckout, checkoutLoading, onBack }) {
       color: '#e2e8f0',
       padding: '0 1rem',
     }}>
-      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+
 
       {/* Ambient background */}
       <div style={{
